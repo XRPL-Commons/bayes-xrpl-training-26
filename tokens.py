@@ -11,6 +11,5 @@ def convert_string_to_hex_padded(s):
     hex_str = s.encode().hex()
     return hex_str.ljust(40, "0").upper()
 
-
 def tokens():
     print("Let's manage tokens... 📊")

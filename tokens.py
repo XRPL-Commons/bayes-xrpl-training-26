@@ -2,7 +2,7 @@ from xrpl.clients import JsonRpcClient
 from xrpl.wallet import generate_faucet_wallet
 from xrpl.account import get_balance
 from xrpl.utils import xrp_to_drops, drops_to_xrp
-from xrpl.models.transactions import AccountSet, TrustSet, AMMCreate
+from xrpl.models.transactions import AccountSet, TrustSet, AMMCreate, Payment
 from xrpl.models.transactions.account_set import AccountSetAsfFlag
 from xrpl.models.amounts import IssuedCurrencyAmount
 from xrpl.transaction import submit_and_wait
@@ -64,4 +64,40 @@ def tokens():
     else:
         print("❌ TrustSet tx failed: ", trust_set_result.result)
 
+    # CREATE AMM POOL
+    amm_create_tx = AMMCreate(
+      account=issuer_wallet.classic_address,
+      amount=IssuedCurrencyAmount(
+          currency=currency_hex,
+          issuer=issuer_wallet.classic_address,
+          value="1000",
+      ),
+      amount2=xrp_to_drops(10),
+      trading_fee=100,
+   )
+    
+    amm_create_result = submit_and_wait(amm_create_tx, client, issuer_wallet)
+    
+    if amm_create_result.is_successful():
+      print("✅ AMMCreate transaction succeeded: ", amm_create_result.result['hash'])
+    else:
+      print("❌ AMMCreate transaction failed: ", amm_create_result.result)
 
+    # SWAP "XRP" FOR "BAYES" (THROUGH THE AMM POOL)
+    swap_tx = Payment(
+       account=holder_wallet.address,
+       destination=holder_wallet.address,
+       amount=IssuedCurrencyAmount(
+           currency=currency_hex,
+           issuer=issuer_wallet.address,
+           value="10",
+       ),
+       send_max=xrp_to_drops(5),
+   )
+
+    swap_result = submit_and_wait(swap_tx, client, holder_wallet)
+
+    if swap_result.is_successful():
+       print("✅ Swap transaction succeeded: ", swap_result.result['hash'])
+    else:
+       print("❌ Swap transaction failed: ", swap_result.result)
